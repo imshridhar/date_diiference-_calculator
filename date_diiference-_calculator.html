@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Date Calculator & Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Custom styles for date picker icon */
+        input[type="date"] {
+            color-scheme: dark;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(1) brightness(0.8);
+            transition: transform 0.2s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+           transform: scale(1.1);
+        }
+
+        .pill-btn {
+            @apply w-full flex items-center justify-center py-3 px-2 text-center font-semibold text-gray-200 rounded-2xl transition-all duration-300;
+            background: rgba(30, 41, 59, 0.3);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .pill-btn:hover {
+             color: white;
+             transform: translateY(-2px);
+             background: rgba(30, 41, 59, 0.5);
+             border-color: rgba(255, 255, 255, 0.2);
+        }
+        .pill-btn.active {
+            @apply text-white font-bold;
+            transform: translateY(-2px);
+            border-color: transparent;
+        }
+
+        /* Gradient classes for active tabs and action buttons */
+        .active-blue {
+            background: linear-gradient(45deg, #3b82f6, #60a5fa);
+            box-shadow: 0 4px 15px -5px rgba(96, 165, 250, 0.6);
+        }
+        .active-orange {
+            background: linear-gradient(45deg, #f97316, #fb923c);
+            box-shadow: 0 4px 15px -5px rgba(251, 146, 60, 0.6);
+        }
+        .active-emerald {
+            background: linear-gradient(45deg, #10b981, #34d399);
+            box-shadow: 0 4px 15px -5px rgba(52, 211, 153, 0.6);
+        }
+        .active-amber {
+            background: linear-gradient(45deg, #f59e0b, #facc15);
+            box-shadow: 0 4px 15px -5px rgba(250, 204, 21, 0.6);
+        }
+        .active-purple {
+            background: linear-gradient(45deg, #8b5cf6, #a78bfa);
+            box-shadow: 0 4px 15px -5px rgba(167, 139, 250, 0.6);
+        }
+        
+        .action-btn {
+            @apply w-full flex items-center justify-center gap-3 font-semibold py-3 rounded-lg text-white focus:outline-none focus:ring-4 transition-all transform hover:scale-105;
+        }
+
+        .loader {
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top: 4px solid #c7d2fe;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        .result-panel {
+            @apply bg-black bg-opacity-20 border border-white border-opacity-20 p-6 rounded-3xl;
+        }
+        #holidays-list li:nth-child(odd) {
+            background-color: rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen py-8 md:py-12">
+    <div class="glass-card p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-3xl mx-4 text-white">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold">AI Date Suite</h1>
+            <p class="text-gray-300 mt-2">Calculate durations, find working days, discover holidays, and plan future dates.</p>
+        </div>
+
+        <!-- Pill Navigation for different calculators -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-2 p-2 bg-gray-900 bg-opacity-30 rounded-3xl mb-6">
+            <button id="durationTab" class="pill-btn">Duration</button>
+            <button id="ageTab" class="pill-btn">Age</button>
+            <button id="workingDaysTab" class="pill-btn">Working Days</button>
+            <button id="holidaysTab" class="pill-btn">Holidays</button>
+            <button id="plannerTab" class="pill-btn col-span-2 lg:col-span-1">Date Planner</button>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="bg-gray-900 bg-opacity-30 p-6 rounded-3xl">
+            <!-- Shared Date Inputs -->
+            <div id="dateInputsContainer" class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div id="startDateContainer" class="w-full">
+                    <label for="date1" class="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="date" id="date1" value="2025-12-20" class="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+                        <button id="setToday1" class="px-3 py-2 bg-white bg-opacity-10 text-sm font-medium rounded-lg hover:bg-opacity-20 transition">Today</button>
+                    </div>
+                </div>
+                <div id="swapBtnContainer" class="pt-4 md:pt-6">
+                    <button id="swapBtn" title="Swap Dates" class="p-2 rounded-full bg-white bg-opacity-10 hover:bg-opacity-20 transition text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 6h18"/><path d="m7 22-4-4 4-4"/><path d="M21 18H3"/></svg>
+                    </button>
+                </div>
+                <div id="endDateContainer" class="w-full">
+                    <label for="date2" class="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="date" id="date2" value="2026-01-10" class="w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+                        <button id="setToday2" class="px-3 py-2 bg-white bg-opacity-10 text-sm font-medium rounded-lg hover:bg-opacity-20 transition">Today</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Panels -->
+            <div class="mt-8">
+                <div id="durationContent">
+                     <div id="result" class="result-panel text-center hidden">
+                         <p class="text-lg text-gray-300">Difference</p>
+                         <p id="result-text" class="text-4xl font-bold text-white"></p>
+                         <div class="mt-4 pt-4 border-t border-white border-opacity-20 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-300">
+                            <p><strong id="totalMonths" class="text-white font-semibold"></strong> months</p>
+                            <p><strong id="totalWeeks" class="text-white font-semibold"></strong> weeks</p>
+                            <p><strong id="totalDays" class="text-white font-semibold"></strong> days</p>
+                         </div>
+                    </div>
+                </div>
+                 <div id="ageContent" class="hidden">
+                     <div id="age-result" class="result-panel text-center hidden">
+                         <p class="text-lg text-gray-300">Your Age</p>
+                         <p id="age-text" class="text-4xl font-bold text-white"></p>
+                          <div class="mt-4 pt-4 border-t border-white border-opacity-20 text-sm text-gray-300">
+                            <p>Or <strong id="ageTotalDays" class="text-white font-semibold"></strong> days old</p>
+                         </div>
+                     </div>
+                </div>
+                <div id="workingDaysContent" class="hidden">
+                     <div id="working-days-result" class="result-panel text-center hidden">
+                         <p class="text-lg text-gray-300">Working Days (Mon-Fri)</p>
+                         <p id="working-days-text" class="text-4xl font-bold text-white"></p>
+                     </div>
+                </div>
+                <div id="holidaysContent" class="hidden">
+                     <div class="space-y-4">
+                         <div>
+                             <label for="countryInput" class="block text-sm font-medium text-gray-300">Country</label>
+                             <input type="text" id="countryInput" value="USA" placeholder="e.g., USA, Canada, India" class="mt-1 w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+                         </div>
+                         <button id="findHolidaysBtn" class="action-btn">
+                            <span id="findHolidaysBtnText">Find Holidays</span><div id="findHolidaysLoader" class="loader hidden"></div>
+                         </button>
+                         <div id="holidays-result-container" class="result-panel hidden">
+                            <h3 id="holidays-count" class="text-lg font-semibold text-white text-center mb-4"></h3>
+                            <ul id="holidays-list" class="space-y-2 text-gray-200"></ul>
+                         </div>
+                         <p id="no-holidays-msg" class="text-center text-gray-300 hidden"></p>
+                     </div>
+                </div>
+                 <div id="plannerContent" class="hidden">
+                     <div class="space-y-4">
+                         <div>
+                             <label for="eventNameInput" class="block text-sm font-medium text-gray-300">Event Name</label>
+                             <input type="text" id="eventNameInput" value="Project Deadline" placeholder="e.g., Vacation, Project Deadline" class="mt-1 w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+                         </div>
+                         <div>
+                             <label for="durationInput" class="block text-sm font-medium text-gray-300">Duration from Start Date</label>
+                             <input type="text" id="durationInput" value="3 months and 15 days" placeholder="e.g., 90 days, 2 weeks, 6 months" class="mt-1 w-full px-4 py-2 bg-white bg-opacity-10 border border-white border-opacity-20 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+                         </div>
+                         <button id="calculateDateBtn" class="action-btn">
+                            <span id="calculateDateBtnText">Plan Date</span><div id="calculateDateLoader" class="loader hidden"></div>
+                         </button>
+                         <div id="planner-result" class="result-panel text-center hidden">
+                             <p id="planner-event-name" class="text-lg text-gray-300"></p>
+                             <p id="planner-result-text" class="text-4xl font-bold text-white"></p>
+                         </div>
+                     </div>
+                </div>
+            </div>
+            <div id="error" class="mt-4 text-center text-red-400 font-medium hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Element References ---
+        const dateInputsContainer = document.getElementById('dateInputsContainer');
+        const startDateContainer = document.getElementById('startDateContainer');
+        const swapBtnContainer = document.getElementById('swapBtnContainer');
+        const endDateContainer = document.getElementById('endDateContainer');
+        const date1Input = document.getElementById('date1');
+        const date2Input = document.getElementById('date2');
+        const setTodayBtn1 = document.getElementById('setToday1');
+        const setTodayBtn2 = document.getElementById('setToday2');
+        const swapBtn = document.getElementById('swapBtn');
+        const errorDiv = document.getElementById('error');
+        // Tabs
+        const durationTab = document.getElementById('durationTab');
+        const ageTab = document.getElementById('ageTab');
+        const workingDaysTab = document.getElementById('workingDaysTab');
+        const holidaysTab = document.getElementById('holidaysTab');
+        const plannerTab = document.getElementById('plannerTab');
+        // Content Panels
+        const durationContent = document.getElementById('durationContent');
+        const ageContent = document.getElementById('ageContent');
+        const workingDaysContent = document.getElementById('workingDaysContent');
+        const holidaysContent = document.getElementById('holidaysContent');
+        const plannerContent = document.getElementById('plannerContent');
+        // Duration Results
+        const resultDiv = document.getElementById('result');
+        const resultText = document.getElementById('result-text');
+        const totalMonthsText = document.getElementById('totalMonths');
+        const totalWeeksText = document.getElementById('totalWeeks');
+        const totalDaysText = document.getElementById('totalDays');
+        // Age Results
+        const ageResultDiv = document.getElementById('age-result');
+        const ageText = document.getElementById('age-text');
+        const ageTotalDays = document.getElementById('ageTotalDays');
+        // Working Days Results
+        const workingDaysResultDiv = document.getElementById('working-days-result');
+        const workingDaysText = document.getElementById('working-days-text');
+        // Holidays Elements
+        const countryInput = document.getElementById('countryInput');
+        const findHolidaysBtn = document.getElementById('findHolidaysBtn');
+        const findHolidaysBtnText = document.getElementById('findHolidaysBtnText');
+        const findHolidaysLoader = document.getElementById('findHolidaysLoader');
+        const holidaysResultContainer = document.getElementById('holidays-result-container');
+        const holidaysCount = document.getElementById('holidays-count');
+        const holidaysList = document.getElementById('holidays-list');
+        const noHolidaysMsg = document.getElementById('no-holidays-msg');
+        // Planner Elements
+        const eventNameInput = document.getElementById('eventNameInput');
+        const durationInput = document.getElementById('durationInput');
+        const calculateDateBtn = document.getElementById('calculateDateBtn');
+        const calculateDateBtnText = document.getElementById('calculateDateBtnText');
+        const calculateDateLoader = document.getElementById('calculateDateLoader');
+        const plannerResultDiv = document.getElementById('planner-result');
+        const plannerEventName = document.getElementById('planner-event-name');
+        const plannerResultText = document.getElementById('planner-result-text');
+
+
+        let activeTab = 'duration'; 
+
+        // --- 2. Core Calculation Functions ---
+        function masterCalculate() {
+            // Hide all results initially when calculating
+            resultDiv.classList.add('hidden');
+            ageResultDiv.classList.add('hidden');
+            workingDaysResultDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+
+            // Specific logic for tabs that don't auto-calculate
+            if (['holidays', 'planner'].includes(activeTab)) {
+                return;
+            }
+
+            const date1String = date1Input.value;
+            const date2String = date2Input.value;
+
+            if (activeTab === 'age') {
+                 if (!date1String) {
+                    showError("Please select a date of birth.");
+                    return;
+                }
+                calculateAndDisplayAge(new Date(date1String + 'T00:00:00'));
+                return;
+            }
+
+            if (!date1String || !date2String) {
+                showError("Please select both a start and end date.");
+                return;
+            }
+
+            let startDate = new Date(date1String + 'T00:00:00');
+            let endDate = new Date(date2String + 'T00:00:00');
+            
+            if (startDate > endDate) {
+                [startDate, endDate] = [endDate, startDate];
+            }
+
+            if (activeTab === 'duration') calculateAndDisplayDuration(startDate, endDate);
+            else if (activeTab === 'workingDays') calculateAndDisplayWorkingDays(startDate, endDate);
+        }
+        
+        function calculateAndDisplayDuration(startDate, endDate) {
+            let years = endDate.getFullYear() - startDate.getFullYear();
+            let months = endDate.getMonth() - startDate.getMonth();
+            let days = endDate.getDate() - startDate.getDate();
+            if (days < 0) {
+                months--;
+                days += new Date(endDate.getFullYear(), endDate.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            resultText.textContent = `${years}y, ${months}m, ${days}d`;
+            const timeDiff = endDate.getTime() - startDate.getTime();
+            const totalDays = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+            totalDaysText.textContent = totalDays.toLocaleString();
+            totalWeeksText.textContent = (totalDays / 7).toFixed(1);
+            let totalMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+            if (endDate.getDate() < startDate.getDate()) totalMonths--;
+            totalMonthsText.textContent = totalMonths <= 0 ? 0 : totalMonths;
+            resultDiv.classList.remove('hidden');
+        }
+
+        function calculateAndDisplayAge(birthDate) {
+            const today = new Date();
+            if (birthDate > today) {
+                showError("Date of birth cannot be in the future.");
+                return;
+            }
+            let years = today.getFullYear() - birthDate.getFullYear();
+            let months = today.getMonth() - birthDate.getMonth();
+            let days = today.getDate() - birthDate.getDate();
+             if (days < 0) {
+                months--;
+                days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            ageText.textContent = `${years}y, ${months}m, ${days}d`;
+            const timeDiff = today.getTime() - birthDate.getTime();
+            const totalDays = Math.max(0, Math.floor(timeDiff / (1000 * 3600 * 24)));
+            ageTotalDays.textContent = totalDays.toLocaleString();
+            ageResultDiv.classList.remove('hidden');
+        }
+
+        function calculateAndDisplayWorkingDays(startDate, endDate) {
+            let workingDaysCount = 0;
+            if (startDate > endDate) {
+                workingDaysText.textContent = '0';
+                workingDaysResultDiv.classList.remove('hidden');
+                return;
+            }
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                if (dayOfWeek > 0 && dayOfWeek < 6) workingDaysCount++;
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            workingDaysText.textContent = workingDaysCount.toLocaleString();
+            workingDaysResultDiv.classList.remove('hidden');
+        }
+        
+        // --- GEMINI API Functions ---
+        async function callGemini(prompt, responseSchema, loaderElement, buttonTextElement, buttonElement) {
+            errorDiv.classList.add('hidden');
+            setLoading(true, loaderElement, buttonTextElement, buttonElement);
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema
+                }
+            };
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (jsonText) return JSON.parse(jsonText);
+                else throw new Error("Could not get a valid response from the AI.");
+
+            } catch (err) {
+                console.error("Gemini API call failed:", err);
+                showError("An AI error occurred. Please try again.");
+                return null;
+            } finally {
+                setLoading(false, loaderElement, buttonTextElement, buttonElement);
+            }
+        }
+
+        async function findHolidays() {
+            holidaysResultContainer.classList.add('hidden');
+            noHolidaysMsg.classList.add('hidden');
+            holidaysList.innerHTML = '';
+            const { value: startDate } = date1Input, { value: endDate } = date2Input, { value: country } = countryInput;
+            if (!startDate || !endDate || !country) return showError("Please select dates and enter a country.");
+
+            const prompt = `List all public holidays in ${country} between ${startDate} and ${endDate}. Provide results as a JSON array of objects, with "date" (YYYY-MM-DD) and "name" properties. If none, return an empty array.`;
+            const schema = { type: "ARRAY", items: { type: "OBJECT", properties: { "date": { "type": "STRING" }, "name": { "type": "STRING" } }, required: ["date", "name"] } };
+            const holidays = await callGemini(prompt, schema, findHolidaysLoader, findHolidaysBtnText, findHolidaysBtn);
+            
+            if (holidays) displayHolidays(holidays);
+        }
+
+        async function planDate() {
+            plannerResultDiv.classList.add('hidden');
+            const { value: startDate } = date1Input, { value: duration } = durationInput;
+            if (!startDate || !duration) return showError("Please select a start date and enter a duration.");
+            
+            const prompt = `Calculate the end date starting from ${startDate} and adding the duration "${duration}". Provide the result as a JSON object with a single key "endDate" in "DD-MM-YYYY" format (e.g., "09-09-2025").`;
+            const schema = { type: "OBJECT", properties: { "endDate": { "type": "STRING" } } };
+            const result = await callGemini(prompt, schema, calculateDateLoader, calculateDateBtnText, calculateDateBtn);
+
+            if (result && result.endDate) {
+                plannerEventName.textContent = eventNameInput.value || "Your Event";
+                plannerResultText.textContent = result.endDate;
+                plannerResultDiv.classList.remove('hidden');
+            }
+        }
+
+
+        // --- 3. UI and Helper Functions ---
+        function formatDateToDDMMYYYY(isoDate) {
+            if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate;
+            const [year, month, day] = isoDate.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function displayHolidays(holidays) {
+            if (holidays.length === 0) {
+                noHolidaysMsg.textContent = `No public holidays found for ${countryInput.value} in this period.`;
+                noHolidaysMsg.classList.remove('hidden');
+                return;
+            }
+            holidaysCount.textContent = `Found ${holidays.length} Holiday(s)`;
+            holidays.forEach(({ date, name }) => {
+                const li = document.createElement('li');
+                li.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded';
+                const formattedDate = formatDateToDDMMYYYY(date);
+                li.innerHTML = `<span class="font-medium text-white">${formattedDate}</span><span class="text-gray-300 text-left sm:text-right">${name}</span>`;
+                holidaysList.appendChild(li);
+            });
+            holidaysResultContainer.classList.remove('hidden');
+        }
+        
+        function setLoading(isLoading, loader, text, button) {
+            text.classList.toggle('hidden', isLoading);
+            loader.classList.toggle('hidden', !isLoading);
+            button.disabled = isLoading;
+        }
+        
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function switchTab(newTab) {
+            activeTab = newTab;
+            
+            const tabConfig = {
+                duration: { btn: durationTab, content: durationContent, activeClass: 'active-blue' },
+                age: { btn: ageTab, content: ageContent, activeClass: 'active-orange' },
+                workingDays: { btn: workingDaysTab, content: workingDaysContent, activeClass: 'active-emerald' },
+                holidays: { btn: holidaysTab, content: holidaysContent, activeClass: 'active-amber', actionBtn: findHolidaysBtn, actionBtnRing: 'focus:ring-amber-400' },
+                planner: { btn: plannerTab, content: plannerContent, activeClass: 'active-purple', actionBtn: calculateDateBtn, actionBtnRing: 'focus:ring-purple-400' }
+            };
+
+            // Hide all results and reset buttons
+            resultDiv.classList.add('hidden');
+            ageResultDiv.classList.add('hidden');
+            workingDaysResultDiv.classList.add('hidden');
+            holidaysResultContainer.classList.add('hidden');
+            noHolidaysMsg.classList.add('hidden');
+            plannerResultDiv.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+
+            for (const key in tabConfig) {
+                const config = tabConfig[key];
+                config.btn.classList.remove('active', config.activeClass);
+                config.content.classList.add('hidden');
+                if (config.actionBtn) {
+                    Object.values(tabConfig).forEach(c => {
+                        if (c.activeClass) config.actionBtn.classList.remove(c.activeClass);
+                        if (c.actionBtnRing) config.actionBtn.classList.remove(c.actionBtnRing);
+                    });
+                }
+            }
+            
+            const activeConfig = tabConfig[newTab];
+            activeConfig.btn.classList.add('active', activeConfig.activeClass);
+            activeConfig.content.classList.remove('hidden');
+            if(activeConfig.actionBtn) {
+                 activeConfig.actionBtn.classList.add(activeConfig.activeClass, activeConfig.actionBtnRing);
+            }
+            
+            const dobLabel = startDateContainer.querySelector('label');
+            
+            if (newTab === 'planner' || newTab === 'age') {
+                startDateContainer.classList.remove('hidden');
+                swapBtnContainer.classList.add('hidden');
+                endDateContainer.classList.add('hidden');
+                dateInputsContainer.classList.remove('hidden');
+                dateInputsContainer.classList.add('flex');
+                dobLabel.textContent = (newTab === 'age') ? 'Date of Birth' : 'Start Date';
+            } else {
+                startDateContainer.classList.remove('hidden');
+                swapBtnContainer.classList.remove('hidden');
+                endDateContainer.classList.remove('hidden');
+                dateInputsContainer.classList.remove('hidden');
+                dateInputsContainer.classList.add('flex');
+                dobLabel.textContent = 'Start Date';
+            }
+
+            masterCalculate();
+        }
+
+        // --- 4. Event Listeners ---
+        date1Input.addEventListener('change', masterCalculate);
+        date2Input.addEventListener('change', masterCalculate);
+        setTodayBtn1.addEventListener('click', () => { date1Input.value = getTodayString(); masterCalculate(); });
+        setTodayBtn2.addEventListener('click', () => { date2Input.value = getTodayString(); masterCalculate(); });
+        swapBtn.addEventListener('click', () => { [date1Input.value, date2Input.value] = [date2Input.value, date1Input.value]; masterCalculate(); });
+        
+        findHolidaysBtn.addEventListener('click', findHolidays);
+        calculateDateBtn.addEventListener('click', planDate);
+        
+        durationTab.addEventListener('click', () => switchTab('duration'));
+        ageTab.addEventListener('click', () => switchTab('age'));
+        workingDaysTab.addEventListener('click', () => switchTab('workingDays'));
+        holidaysTab.addEventListener('click', () => switchTab('holidays'));
+        plannerTab.addEventListener('click', () => switchTab('planner'));
+        
+        // Initial setup on load
+        window.onload = () => {
+            switchTab('duration');
+        };
+    </script>
+</body>
+</html>
+
